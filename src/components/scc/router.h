@@ -19,6 +19,7 @@
 
 #include <limits>
 #include <scc/utilities.h>
+#include <scc/report.h>
 #include <sysc/utils/sc_vector.h>
 #include <tlm.h>
 #include <tlm/scc/initiator_mixin.h>
@@ -249,6 +250,7 @@ void router<BUSWIDTH, TARGET_SOCKET_TYPE>::b_transport(int i, tlm::tlm_generic_p
     size_t idx = addr_decoder.getEntry(address);
     if(idx == addr_decoder.null_entry) {
         if(default_idx == std::numeric_limits<size_t>::max()) {
+            SCCWARN(SCMOD) << "target address=0x" << std::hex << address << " not found for " << (trans.get_command() == tlm::TLM_READ_COMMAND ? "read" : "write") << " transaction.";
             trans.set_response_status(tlm::TLM_ADDRESS_ERROR_RESPONSE);
             return;
         }
@@ -272,6 +274,7 @@ bool router<BUSWIDTH, TARGET_SOCKET_TYPE>::get_direct_mem_ptr(int i, tlm::tlm_ge
     size_t idx = addr_decoder.getEntry(address);
     if(idx == addr_decoder.null_entry) {
         if(default_idx == std::numeric_limits<size_t>::max()) {
+            SCCWARN(SCMOD) << "target address=0x" << std::hex << address << " not found for " << (trans.get_command() == tlm::TLM_READ_COMMAND ? "read" : "write") << " transaction.";
             trans.set_response_status(tlm::TLM_ADDRESS_ERROR_RESPONSE);
             return false;
         }
@@ -300,6 +303,7 @@ unsigned router<BUSWIDTH, TARGET_SOCKET_TYPE>::transport_dbg(int i, tlm::tlm_gen
     size_t idx = addr_decoder.getEntry(address);
     if(idx == addr_decoder.null_entry) {
         if(default_idx == std::numeric_limits<size_t>::max()) {
+            SCCWARN(SCMOD) << "target address=0x" << std::hex << address << " not found for " << (trans.get_command() == tlm::TLM_READ_COMMAND ? "read" : "write") << " transaction.";
             trans.set_response_status(tlm::TLM_ADDRESS_ERROR_RESPONSE);
             return 0;
         }
