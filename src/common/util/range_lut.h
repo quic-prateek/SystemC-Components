@@ -133,13 +133,21 @@ template <typename T> std::ostream& operator<<(std::ostream& os, range_lut<T>& l
 }
 
 template <typename T> inline void range_lut<T>::addEntry(T const& i, uint64_t base_addr, uint64_t size) {
+    std::ostringstream error_buf;
     auto iter = m_lut.find(base_addr);
-    if(iter != m_lut.end() && iter->second.index != null_entry)
-        throw std::runtime_error("range already mapped");
+    if(iter != m_lut.end() && iter->second.index != null_entry){
+        error_buf << "range already mapped for address 0x" << std::setw(sizeof(uint64_t) * 2)
+                  << std::setfill('0') << std::hex << iter->first;
+        throw std::runtime_error(error_buf.str());
+    }
 
     auto eaddr = base_addr + size - 1;
-    if(eaddr < base_addr)
-        throw std::runtime_error("address wrap-around occurred");
+    if(eaddr < base_addr) {
+        error_buf << "address wrap-around occurred: end address 0x" << std::setw(sizeof(uint64_t) * 2)
+                  << std::setfill('0') << std::hex << eaddr << " is less than the base address 0x"
+                  << std::setw(sizeof(uint64_t) * 2) << std::setfill('0') << std::hex << base_addr;
+        throw std::runtime_error(error_buf.str());
+    }
 
     m_lut[base_addr] = lut_entry{i, size > 1 ? BEGIN_RANGE : SINGLE_BYTE_RANGE};
     if(size > 1)
@@ -167,25 +175,40 @@ template <typename T> inline bool range_lut<T>::removeEntry(T i) {
 }
 
 template <typename T> inline void range_lut<T>::validate() const {
+    std::ostringstream error_buf;
     auto mapped = false;
     for(auto iter = m_lut.begin(); iter != m_lut.end(); iter++) {
+        auto addr  = iter->first;
         switch(iter->second.type) {
         case SINGLE_BYTE_RANGE:
-            if(iter->second.index != null_entry && mapped)
-                throw std::runtime_error("range overlap: begin range while in mapped range");
+            if(iter->second.index != null_entry && mapped){
+                error_buf << "begin range overlap: address 0x" << std::setw(sizeof(uint64_t) * 2)
+                          << std::setfill('0') << std::hex << addr << " is within the mapped range.";
+                throw std::runtime_error(error_buf.str());
+            }
 
             break;
         case BEGIN_RANGE:
             if(iter->second.index != null_entry) {
                 if(mapped) {
-                    throw std::runtime_error("range overlap: begin range while in mapped range");
+                    // Determine the end address that falls inside the overlapping regionE
+                    for(; (iter != m_lut.end() && iter->second.type != END_RANGE); iter++) {
+                    }
+                    auto eaddr = iter->first;
+                    error_buf << "begin range overlap: address range 0x" << std::setw(sizeof(uint64_t) * 2)
+                              << std::setfill('0') << std::hex << addr << " - 0x"
+                              << std::setw(sizeof(uint64_t) * 2) << std::setfill('0') << std::hex << eaddr
+                              << " is within the mapped range.";
+                    throw std::runtime_error(error_buf.str());
                 }
                 mapped = true;
             }
             break;
         case END_RANGE:
             if(!mapped) {
-                throw std::runtime_error("range overlap: end range while in unmapped region");
+                error_buf << "end range overlap: address 0x" << std::setw(sizeof(uint64_t) * 2)
+                          << std::setfill('0') << std::hex << addr << " in unmapped region.";
+                throw std::runtime_error(error_buf.str());
             }
             mapped = false;
             break;
