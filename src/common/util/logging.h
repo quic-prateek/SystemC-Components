@@ -203,8 +203,6 @@ public:
         static std::atomic<bool> flag{true};
         return flag;
     }
-
-protected:
     /**
      * get a reference to the configured logging level
      *
@@ -214,6 +212,8 @@ protected:
         static std::atomic<log_level> reportingLevel{WARN};
         return reportingLevel;
     }
+
+protected:
     std::atomic<log_level>& get_last_log_level() {
         static std::atomic<log_level> level{TRACE};
         return level;
